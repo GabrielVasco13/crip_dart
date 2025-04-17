@@ -2,20 +2,13 @@ import 'dart:io';
 import 'package:crip_dart/encript.dart';
 import 'package:crip_dart/descript.dart';
 import 'package:crip_dart/helper/encrypted_result.dart';
+import 'package:crip_dart/helper/key_size.dart';
 
 void main() {
-  // Chave definida com 32 bytes
-  const String mySecretKey = 'my 32 length key................';
+  // Chave definida com 16 bytes
+  final mySecretKey = KeySize.bits256.keyString;
 
-  //  Chave de 24 bytes
-  // final key = Key.fromUtf8('my 24 length key........');
-
-  // Chave de 16 bytes
-  // final key = Key.fromUtf8('my 16 length key');
-
-  // Cria as instancias de Cript e Descript
-  // Criptografia e descriptografia
-  final cript = Cript(mySecretKey);
+  final encript = Cript(mySecretKey);
   final descript = Descript(mySecretKey);
 
   print("Digite o texto para criptografar:");
@@ -31,7 +24,7 @@ void main() {
     // O resultado é uma instância de EncryptedResult
     // que contém os dados criptografados e o IV
 
-    final EncryptedResult encryptionResult = cript.encryptText(plainText);
+    final EncryptedResult encryptionResult = encript.encryptText(plainText);
 
     print(
         'Texto Criptografado (Base64): ${encryptionResult.encryptedData.base64}');
