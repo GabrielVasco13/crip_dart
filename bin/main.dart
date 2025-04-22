@@ -1,21 +1,20 @@
-import 'package:crip_dart/aes/aes_encryptor.dart';
-import 'package:crip_dart/aes/aes_key.dart';
 import 'package:crip_dart/rsa/rsa_keys.dart';
 import 'package:crip_dart/rsa/rsa_service.dart';
+import 'package:pointycastle/export.dart';
 
 void main() async {
   // AES
-  final aes = AESEncryptor(AESKeyLoader.getKey(), AESKeyLoader.getIV());
-  final encryptedAES = aes.encryptText('Texto com AES!');
-  final decryptedAES = aes.decryptText(encryptedAES);
-  print('AES Encrypt: $encryptedAES');
-  print('AES Decrypt: $decryptedAES');
+  final keyPair = RSAKeyManager.generateKeyPair();
+  final publicKey = keyPair.publicKey as RSAPublicKey;
+  final privateKey = keyPair.privateKey as RSAPrivateKey;
 
-  // RSA
-  final keys = await RSAKeyManager.generateKeys();
-  final rsa = RSAService(publicKey: keys.$2, privateKey: keys.$1);
-  final encryptedRSA = await rsa.encrypt('Texto com RSA!');
-  final decryptedRSA = await rsa.decrypt(encryptedRSA);
-  print('RSA Encrypt: $encryptedRSA');
-  print('RSA Decrypt: $decryptedRSA');
+  // Instanciar serviço
+  final rsa = RSAService(publicKey: publicKey, privateKey: privateKey);
+
+  // Criptografar e descriptografar
+  final encrypted = rsa.encrypt('Texto com RSA PointyCastle!');
+  final decrypted = rsa.decrypt(encrypted);
+
+  print('RSA Encrypt: $encrypted');
+  print('RSA Decrypt: $decrypted');
 }

@@ -6,7 +6,6 @@ library exemplo;
 import 'dart:typed_data' show Uint8List;
 import 'package:flat_buffers/flat_buffers.dart' as fb;
 
-
 class Pessoa {
   Pessoa._(this._bc, this._bcOffset);
   factory Pessoa(List<int> bytes) {
@@ -19,7 +18,8 @@ class Pessoa {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  String? get nome => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
+  String? get nome =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 4);
   int get idade => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 6, 0);
 
   @override
@@ -32,8 +32,7 @@ class _PessoaReader extends fb.TableReader<Pessoa> {
   const _PessoaReader();
 
   @override
-  Pessoa createObject(fb.BufferContext bc, int offset) => 
-    Pessoa._(bc, offset);
+  Pessoa createObject(fb.BufferContext bc, int offset) => Pessoa._(bc, offset);
 }
 
 class PessoaBuilder {
@@ -49,6 +48,7 @@ class PessoaBuilder {
     fbBuilder.addOffset(0, offset);
     return fbBuilder.offset;
   }
+
   int addIdade(int? idade) {
     fbBuilder.addInt32(1, idade);
     return fbBuilder.offset;
@@ -66,15 +66,13 @@ class PessoaObjectBuilder extends fb.ObjectBuilder {
   PessoaObjectBuilder({
     String? nome,
     int? idade,
-  })
-      : _nome = nome,
+  })  : _nome = nome,
         _idade = idade;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? nomeOffset = _nome == null ? null
-        : fbBuilder.writeString(_nome!);
+    final int? nomeOffset = _nome == null ? null : fbBuilder.writeString(_nome);
     fbBuilder.startTable(2);
     fbBuilder.addOffset(0, nomeOffset);
     fbBuilder.addInt32(1, _idade);
@@ -89,6 +87,7 @@ class PessoaObjectBuilder extends fb.ObjectBuilder {
     return fbBuilder.buffer;
   }
 }
+
 class PessoasWrapper {
   PessoasWrapper._(this._bc, this._bcOffset);
   factory PessoasWrapper(List<int> bytes) {
@@ -101,7 +100,8 @@ class PessoasWrapper {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  List<Pessoa>? get pessoas => const fb.ListReader<Pessoa>(Pessoa.reader).vTableGetNullable(_bc, _bcOffset, 4);
+  List<Pessoa>? get pessoas => const fb.ListReader<Pessoa>(Pessoa.reader)
+      .vTableGetNullable(_bc, _bcOffset, 4);
 
   @override
   String toString() {
@@ -113,8 +113,8 @@ class _PessoasWrapperReader extends fb.TableReader<PessoasWrapper> {
   const _PessoasWrapperReader();
 
   @override
-  PessoasWrapper createObject(fb.BufferContext bc, int offset) => 
-    PessoasWrapper._(bc, offset);
+  PessoasWrapper createObject(fb.BufferContext bc, int offset) =>
+      PessoasWrapper._(bc, offset);
 }
 
 class PessoasWrapperBuilder {
@@ -141,14 +141,15 @@ class PessoasWrapperObjectBuilder extends fb.ObjectBuilder {
 
   PessoasWrapperObjectBuilder({
     List<PessoaObjectBuilder>? pessoas,
-  })
-      : _pessoas = pessoas;
+  }) : _pessoas = pessoas;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? pessoasOffset = _pessoas == null ? null
-        : fbBuilder.writeList(_pessoas!.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
+    final int? pessoasOffset = _pessoas == null
+        ? null
+        : fbBuilder.writeList(
+            _pessoas.map((b) => b.getOrCreateOffset(fbBuilder)).toList());
     fbBuilder.startTable(1);
     fbBuilder.addOffset(0, pessoasOffset);
     return fbBuilder.endTable();
