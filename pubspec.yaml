@@ -11,6 +11,7 @@ dependencies:
   args: ^2.4.2
   encrypt: ^5.0.3
   flat_buffers: ^23.5.26
+  pointycastle: ^3.9.1
 
 dev_dependencies:
   http_mock_adapter: ^0.6.1
