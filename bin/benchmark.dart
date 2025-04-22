@@ -1,8 +1,6 @@
 import 'dart:math';
 import 'package:crip_dart/benchmark/benchmark_result.dart';
 import 'package:crip_dart/colors/xterm_colors.dart';
-import 'package:crip_dart/encript.dart';
-import 'package:crip_dart/descript.dart';
 import 'package:crip_dart/helper/key_size.dart';
 
 void main() {

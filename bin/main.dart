@@ -1,44 +1,21 @@
-import 'dart:io';
-import 'package:crip_dart/encript.dart';
-import 'package:crip_dart/descript.dart';
-import 'package:crip_dart/helper/encrypted_result.dart';
-import 'package:crip_dart/helper/key_size.dart';
+import 'package:crip_dart/aes/aes_encryptor.dart';
+import 'package:crip_dart/aes/aes_key.dart';
+import 'package:crip_dart/rsa/rsa_keys.dart';
+import 'package:crip_dart/rsa/rsa_service.dart';
 
-void main() {
-  // Chave definida com 16 bytes
-  final mySecretKey = KeySize.bits256.keyString;
+void main() async {
+  // AES
+  final aes = AESEncryptor(AESKeyLoader.getKey(), AESKeyLoader.getIV());
+  final encryptedAES = aes.encryptText('Texto com AES!');
+  final decryptedAES = aes.decryptText(encryptedAES);
+  print('AES Encrypt: $encryptedAES');
+  print('AES Decrypt: $decryptedAES');
 
-  final encript = Cript(mySecretKey);
-  final descript = Descript(mySecretKey);
-
-  print("Digite o texto para criptografar:");
-  String? input = stdin.readLineSync();
-
-  if (input != null && input.isNotEmpty) {
-    final plainText = input;
-
-    // 1. Encriptando utilizando a instancia do Encript
-    // Passa o texto plano para criptografar
-    // O IV é gerado automaticamente na classe Cript
-    // e não precisa ser passado como argumento
-    // O resultado é uma instância de EncryptedResult
-    // que contém os dados criptografados e o IV
-
-    final EncryptedResult encryptionResult = encript.encryptText(plainText);
-
-    print(
-        'Texto Criptografado (Base64): ${encryptionResult.encryptedData.base64}');
-
-    // Também pode imprimir o IV se necessário: print('IV (Base64): ${encryptionResult.iv.base64}');
-
-    // 2. Descriptografando utilizando a instancia do Descript
-    // Passa os dados criptografados e o IV para descriptografar
-    final decryptedText = descript.decryptData(encryptionResult.encryptedData,
-        encryptionResult.iv // Usar o IV gerado na criptografia
-        );
-
-    print('Texto Descriptografado: $decryptedText');
-  } else {
-    print("Nenhuma entrada fornecida.");
-  }
+  // RSA
+  final keys = await RSAKeyManager.generateKeys();
+  final rsa = RSAService(publicKey: keys.$2, privateKey: keys.$1);
+  final encryptedRSA = await rsa.encrypt('Texto com RSA!');
+  final decryptedRSA = await rsa.decrypt(encryptedRSA);
+  print('RSA Encrypt: $encryptedRSA');
+  print('RSA Decrypt: $decryptedRSA');
 }
