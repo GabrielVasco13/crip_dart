@@ -24,7 +24,7 @@ class Pessoa {
 
   @override
   String toString() {
-    return 'Pessoa{nome: ${nome}, idade: ${idade}}';
+    return 'Pessoa{nome: $nome, idade: $idade}';
   }
 }
 
@@ -105,7 +105,7 @@ class PessoasWrapper {
 
   @override
   String toString() {
-    return 'PessoasWrapper{pessoas: ${pessoas}}';
+    return 'PessoasWrapper{pessoas: $pessoas}';
   }
 }
 
