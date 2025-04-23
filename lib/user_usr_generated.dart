@@ -6,7 +6,6 @@ library usr;
 import 'dart:typed_data' show Uint8List;
 import 'package:flat_buffers/flat_buffers.dart' as fb;
 
-
 class User {
   User._(this._bc, this._bcOffset);
   factory User(List<int> bytes) {
@@ -20,12 +19,14 @@ class User {
   final int _bcOffset;
 
   int get id => const fb.Uint32Reader().vTableGet(_bc, _bcOffset, 4, 0);
-  String? get name => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
-  String? get email => const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
+  String? get name =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 6);
+  String? get email =>
+      const fb.StringReader().vTableGetNullable(_bc, _bcOffset, 8);
 
   @override
   String toString() {
-    return 'User{id: ${id}, name: ${name}, email: ${email}}';
+    return 'User{id: $id, name: $name, email: $email}';
   }
 }
 
@@ -33,8 +34,7 @@ class _UserReader extends fb.TableReader<User> {
   const _UserReader();
 
   @override
-  User createObject(fb.BufferContext bc, int offset) => 
-    User._(bc, offset);
+  User createObject(fb.BufferContext bc, int offset) => User._(bc, offset);
 }
 
 class UserBuilder {
@@ -50,10 +50,12 @@ class UserBuilder {
     fbBuilder.addUint32(0, id);
     return fbBuilder.offset;
   }
+
   int addNameOffset(int? offset) {
     fbBuilder.addOffset(1, offset);
     return fbBuilder.offset;
   }
+
   int addEmailOffset(int? offset) {
     fbBuilder.addOffset(2, offset);
     return fbBuilder.offset;
@@ -73,18 +75,16 @@ class UserObjectBuilder extends fb.ObjectBuilder {
     int? id,
     String? name,
     String? email,
-  })
-      : _id = id,
+  })  : _id = id,
         _name = name,
         _email = email;
 
   /// Finish building, and store into the [fbBuilder].
   @override
   int finish(fb.Builder fbBuilder) {
-    final int? nameOffset = _name == null ? null
-        : fbBuilder.writeString(_name!);
-    final int? emailOffset = _email == null ? null
-        : fbBuilder.writeString(_email!);
+    final int? nameOffset = _name == null ? null : fbBuilder.writeString(_name);
+    final int? emailOffset =
+        _email == null ? null : fbBuilder.writeString(_email);
     fbBuilder.startTable(3);
     fbBuilder.addUint32(0, _id);
     fbBuilder.addOffset(1, nameOffset);

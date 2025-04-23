@@ -1,115 +1,177 @@
+import 'dart:convert';
 import 'dart:math';
-import 'package:crip_dart/benchmark/benchmark_result.dart';
 import 'package:crip_dart/colors/xterm_colors.dart';
-import 'package:crip_dart/encript.dart';
-import 'package:crip_dart/descript.dart';
-import 'package:crip_dart/helper/key_size.dart';
+import 'package:encrypt/encrypt.dart';
+import 'package:pointycastle/export.dart';
+import 'package:crip_dart/user_usr_generated.dart';
+import 'package:crip_dart/aes/aes_key.dart';
+import 'package:crip_dart/aes/aes_encryptor.dart';
+import 'package:crip_dart/rsa/rsa_keys.dart';
+import 'package:crip_dart/rsa/rsa_service.dart';
 
-void main() {
-  const int numIterations = 5000;
-  const int textLength = 10000;
-
-  // Gerar texto aleatório para usar nos testes (para consistência)
-  final String testText = _generateRandomString(textLength);
-
-  // Lista para armazenar resultados
-  final List<BenchmarkResult> results = [];
-
-  print(
-      '${XTermColor.green}Inicializando benchmark de criptografia AES com $numIterations iterações');
-  print('${XTermColor.green}Tamanho do texto: $textLength caracteres');
-  print(
-      '${XTermColor.green}--------------------------------------------------------------');
-
-  // Teste para cada tamanho de chave
-  for (final keySize in KeySize.values) {
-    final String description;
-    switch (keySize) {
-      case KeySize.bits128:
-        description = '128 bits (16 bytes)';
-        break;
-      case KeySize.bits192:
-        description = '192 bits (24 bytes)';
-        break;
-      case KeySize.bits256:
-        description = '256 bits (32 bytes)';
-        break;
-    }
-
-    print('Testando chave de $description...');
-
-    // Obter a chave
-    final mySecretKey = keySize.keyString;
-
-    // Criar instâncias de criptografia e descriptografia
-    final encript = Cript(mySecretKey);
-    final descript = Descript(mySecretKey);
-
-    // Medir o tempo total diretamente, sem dividir por iteração ainda
-    // Isso evita perder precisão com operações muito rápidas
-
-    // Criptografia
-    final encryptStart =
-        DateTime.now().microsecondsSinceEpoch; // Usar microssegundos
-    for (int i = 0; i < numIterations; i++) {
-      final encryptionResult = encript.encryptText(testText);
-      if (i == numIterations - 1) {
-        // Usar o último resultado para descriptografia
-        final decryptStart = DateTime.now().microsecondsSinceEpoch;
-        for (int j = 0; j < numIterations; j++) {
-          descript.decryptData(
-              encryptionResult.encryptedData, encryptionResult.iv);
-        }
-        final decryptEnd = DateTime.now().microsecondsSinceEpoch;
-
-        // Calcular tempos totais em microssegundos
-        final encryptEnd = DateTime.now().microsecondsSinceEpoch;
-        final totalEncryptTime = encryptEnd - encryptStart;
-        final totalDecryptTime = decryptEnd - decryptStart;
-
-        // Calcular médias em milissegundos (dividindo por 1000)
-        final avgEncryptTimeMs =
-            (totalEncryptTime / numIterations / 1000).toStringAsFixed(3);
-        final avgDecryptTimeMs =
-            (totalDecryptTime / numIterations / 1000).toStringAsFixed(3);
-
-        // Armazenar resultado com maior precisão
-        results.add(BenchmarkResult(
-          description,
-          double.parse(avgEncryptTimeMs),
-          double.parse(avgDecryptTimeMs),
-        ));
-      }
-    }
-  }
-
-  // Exibir resultados
-  print('--------------------------------------------------------------');
-  print('RESULTADOS DO BENCHMARK (média por operação em ms):');
-  for (final result in results) {
-    print(result);
-  }
-
-  // Encontrar o mais rápido
-  BenchmarkResult? fastest = results.isNotEmpty ? results[0] : null;
-  for (final result in results) {
-    if (result.totalTimeMs < fastest!.totalTimeMs) {
-      fastest = result;
-    }
-  }
-
-  if (fastest != null) {
-    print('--------------------------------------------------------------');
-    print('O tamanho de chave mais rápido foi: ${fastest.keySize}');
-    print('--------------------------------------------------------------');
-  }
+String randomString(int length) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  final rand = Random.secure();
+  return List.generate(length, (_) => chars[rand.nextInt(chars.length)]).join();
 }
 
-// Gerador de string aleatória para teste
-String _generateRandomString(int length) {
-  const chars =
-      'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
-  final random = Random();
-  return String.fromCharCodes(Iterable.generate(
-      length, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
+Map<String, dynamic> generateRandomUserMap(int id) {
+  return {
+    'id': id,
+    'name': randomString(10),
+    'email': '${randomString(5)}@${randomString(5)}.com'
+  };
+}
+
+UserObjectBuilder generateRandomUserObj(int id) {
+  return UserObjectBuilder(
+    id: id,
+    name: randomString(10),
+    email: '${randomString(5)}@${randomString(5)}.com',
+  );
+}
+
+void main() async {
+  const int n = 100000; // quantidade de usuários para o teste
+  final usersJson = List.generate(n, (i) => generateRandomUserMap(i));
+  final usersFlat = List.generate(n, (i) => generateRandomUserObj(i));
+
+  // AES setup
+  final aesKey = AESKeyLoader.getKey();
+  final aesIv = AESKeyLoader.getIV();
+  final aes = AESEncryptor(aesKey, aesIv);
+
+  // RSA setup
+  final keyPair = RSAKeyManager.generateKeyPair();
+  final publicKey = keyPair.publicKey as RSAPublicKey;
+  final privateKey = keyPair.privateKey as RSAPrivateKey;
+  final rsa = RSAService(publicKey: publicKey, privateKey: privateKey);
+
+  // --- JSON SERIALIZATION ---
+  final jsonStart = DateTime.now().microsecondsSinceEpoch;
+  final jsonString = jsonEncode(usersJson);
+  final jsonSerTime = DateTime.now().microsecondsSinceEpoch - jsonStart;
+
+  // --- JSON DESERIALIZATION ---
+  final jsonDesStart = DateTime.now().microsecondsSinceEpoch;
+  final decodedJson = jsonDecode(jsonString);
+  final jsonDeserTime = DateTime.now().microsecondsSinceEpoch - jsonDesStart;
+
+  // --- FLATBUFFERS SERIALIZATION ---
+  final flatStart = DateTime.now().microsecondsSinceEpoch;
+  final flatBuffers = usersFlat.map((u) => u.toBytes()).toList();
+  final flatSerTime = DateTime.now().microsecondsSinceEpoch - flatStart;
+
+  // --- FLATBUFFERS DESERIALIZATION ---
+  final flatDesStart = DateTime.now().microsecondsSinceEpoch;
+  final flatObjs = flatBuffers.map((b) => User(b)).toList();
+  final flatDeserTime = DateTime.now().microsecondsSinceEpoch - flatDesStart;
+
+  // --- AES ENCRYPT ---
+  final aesEncStart = DateTime.now().microsecondsSinceEpoch;
+  final aesEncrypted = aes.encryptText(jsonString);
+  final aesEncTime = DateTime.now().microsecondsSinceEpoch - aesEncStart;
+
+  // --- RSA ENCRYPT (da chave AES) ---
+  final rsaEncStart = DateTime.now().microsecondsSinceEpoch;
+  final aesKeyBase64 = base64Encode(aesKey.bytes);
+  final aesIvBase64 = base64Encode(aesIv.bytes);
+  final rsaEncryptedKey = rsa.encrypt(aesKeyBase64);
+  final rsaEncryptedIv = rsa.encrypt(aesIvBase64);
+  final rsaEncTime = DateTime.now().microsecondsSinceEpoch - rsaEncStart;
+
+  // --- RSA DECRYPT (da chave AES) ---
+  final rsaDecStart = DateTime.now().microsecondsSinceEpoch;
+  final decryptedKeyBase64 = rsa.decrypt(rsaEncryptedKey);
+  final decryptedIvBase64 = rsa.decrypt(rsaEncryptedIv);
+  final decryptedKey = Key.fromBase64(decryptedKeyBase64);
+  final decryptedIv = IV.fromBase64(decryptedIvBase64);
+  final rsaDecTime = DateTime.now().microsecondsSinceEpoch - rsaDecStart;
+
+  // --- AES DECRYPT (usando chave/IV recuperados via RSA) ---
+  final aesDecStart = DateTime.now().microsecondsSinceEpoch;
+  final aesRecovered = AESEncryptor(decryptedKey, decryptedIv);
+  final aesDecrypted = aesRecovered.decryptText(aesEncrypted);
+  final aesDecTime = DateTime.now().microsecondsSinceEpoch - aesDecStart;
+
+  // Exibir exemplos dos dados
+  print(
+      '\n${XTermColor.orangeRed}===== SERIALIZAÇÃO/DESSERIALIZAÇÃO =====${XTermColor.reset}');
+  print(
+      '${XTermColor.yellow}JSON serializado: ${jsonString.substring(0, 100)}...${XTermColor.reset}');
+  print(
+      '${XTermColor.yellow}JSON desserializado: ${decodedJson.toString().substring(0, 100)}...${XTermColor.reset}');
+  print(
+      '${XTermColor.magenta}FlatBuffer serializado (bytes): ${flatBuffers[0].take(20).toList()}...${XTermColor.reset}');
+  print(
+      '${XTermColor.magenta}FlatBuffer desserializado: id=${flatObjs[0].id}, name=${flatObjs[0].name}, email=${flatObjs[0].email}${XTermColor.reset}');
+
+  print('\n${XTermColor.orangeRed}===== DESEMPENHO =====${XTermColor.reset}');
+  print(
+      '${XTermColor.yellow}JSON - Serialização: ${jsonSerTime / 1000} ms | Desserialização: ${jsonDeserTime / 1000} ms${XTermColor.reset}');
+  print(
+      '${XTermColor.magenta}FlatBuffers - Serialização: ${flatSerTime / 1000} ms | Desserialização: ${flatDeserTime / 1000} ms${XTermColor.reset}');
+
+  print('\n${XTermColor.orangeRed}===== AES =====${XTermColor.reset}');
+  print(
+      '${XTermColor.cyan}AES Encrypted (base64): ${aesEncrypted.substring(0, 100)}...${XTermColor.reset}');
+  print(
+      '${XTermColor.cyan}AES Decrypted (JSON): ${aesDecrypted.substring(0, 100)}...${XTermColor.reset}');
+  print(
+      '${XTermColor.green}Encrypt: ${aesEncTime / 1000} ms | Decrypt: ${aesDecTime / 1000} ms${XTermColor.reset}');
+
+  print('\n${XTermColor.orangeRed}===== RSA =====${XTermColor.reset}');
+  print(
+      '${XTermColor.cyan}RSA Encrypted AES Key: ${rsaEncryptedKey.substring(0, 100)}...${XTermColor.reset}');
+  print(
+      '${XTermColor.cyan}RSA Encrypted AES IV: ${rsaEncryptedIv.substring(0, 100)}...${XTermColor.reset}');
+  print(
+      '${XTermColor.green}Encrypt Key+IV: ${rsaEncTime / 1000} ms | Decrypt Key+IV: ${rsaDecTime / 1000} ms${XTermColor.reset}');
+
+  print(
+      '\n${XTermColor.orangeRed}===== AES + RSA (HÍBRIDO) =====${XTermColor.reset}');
+  print(
+      '${XTermColor.cyan}AES Encrypted (base64): ${aesEncrypted.substring(0, 100)}...${XTermColor.reset}');
+  print(
+      '${XTermColor.cyan}AES Decrypted (JSON via chave/IV RSA): ${aesDecrypted.substring(0, 100)}...${XTermColor.reset}');
+  print(
+      '${XTermColor.green}AES Encrypt: ${aesEncTime / 1000} ms | RSA Encrypt Key+IV: ${rsaEncTime / 1000} ms | RSA Decrypt Key+IV: ${rsaDecTime / 1000} ms | AES Decrypt: ${aesDecTime / 1000} ms${XTermColor.reset}');
+
+  print('');
+  print(
+    '${XTermColor.orangeRed}--- JSON ---${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.green}Serialização: ${jsonSerTime / 1000} ms${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.green}Deserialização: ${jsonDeserTime / 1000} ms${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.magenta}--- FlatBuffers ---${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.blueBright}Serialização: ${flatSerTime / 1000} ms${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.blueBright}Deserialização: ${flatDeserTime / 1000} ms${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.orangeRed}--- AES ---${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.green}Encrypt: ${aesEncTime / 1000} ms${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.green}Decrypt: ${aesDecTime / 1000} ms${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.orangeRed}--- RSA ---${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.green}Encrypt: ${rsaEncTime / 1000} ms${XTermColor.reset}',
+  );
+  print(
+    '${XTermColor.green}Decrypt: ${rsaDecTime / 1000} ms${XTermColor.reset}',
+  );
 }
